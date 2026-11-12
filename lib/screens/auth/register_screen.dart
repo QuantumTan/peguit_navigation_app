@@ -1,0 +1,110 @@
+import 'package:flutter/material.dart';
+
+import '../../services/demo_auth.dart';
+import '../../widgets/app_text_field.dart';
+import '../../widgets/auth_header.dart';
+
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final formKey = GlobalKey<FormState>();
+  final usernameController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmController = TextEditingController();
+
+  void register() {
+    if (!formKey.currentState!.validate()) return;
+    DemoAuth.register(usernameController.text.trim(), passwordController.text);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Registration successful! You can now log in.'),
+      ),
+    );
+    Navigator.of(context).pop();
+  }
+
+  @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    confirmController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Register')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const AuthHeader(
+                icon: Icons.person_add,
+                title: 'Create an Account',
+              ),
+              const SizedBox(height: 24),
+              AppTextField(
+                controller: usernameController,
+                label: 'Username',
+                validator: (value) {
+                  final username = value?.trim() ?? '';
+                  if (username.length < 3) return 'Use at least 3 characters.';
+                  if (username.toLowerCase() == 'admin') {
+                    return 'This username is reserved.';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: passwordController,
+                label: 'Password',
+                obscureText: true,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Enter a password.';
+                  }
+                  if (value.length < 6) return 'Use at least 6 characters.';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: confirmController,
+                label: 'Confirm Password',
+                obscureText: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Confirm your password.';
+                  }
+                  if (value != passwordController.text) {
+                    return 'Passwords do not match.';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: register,
+                child: const Text('Register'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Already have an account? Login'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
