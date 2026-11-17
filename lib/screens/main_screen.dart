@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'tabs/home_page.dart';
+import '../services/demo_auth.dart';
+import '../social_media/social_media.dart';
 import 'tabs/calculator_screen.dart';
+import 'tabs/home_page.dart';
 import 'tabs/profile_page.dart';
-import 'tabs/social_media_page.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -15,12 +16,21 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int selectedIndex = 0;
 
-  final List<Widget> pages = const [
-    HomePage(),
-    CalculatorScreen(),
-    ProfilePage(),
-    SocialMediaPage(),
-  ];
+  late final List<Widget> pages;
+
+  @override
+  void initState() {
+    super.initState();
+
+    pages = [
+      const HomePage(),
+      const CalculatorScreen(),
+      const ProfilePage(),
+      SocialMediaPage(
+        username: DemoAuth.currentUsername!,
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
