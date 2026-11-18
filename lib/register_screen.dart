@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../services/demo_auth.dart';
-import '../../widgets/app_text_field.dart';
-import '../../widgets/auth_header.dart';
+import 'demo_auth.dart';
+import 'widgets/app_text_field.dart';
+import 'widgets/auth_header.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -18,13 +18,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final confirmController = TextEditingController();
 
   void register() {
-    if (!formKey.currentState!.validate()) return;
-    DemoAuth.register(usernameController.text.trim(), passwordController.text);
+    if (!formKey.currentState!.validate()) {
+      return;
+    }
+
+    DemoAuth.register(
+      usernameController.text.trim(),
+      passwordController.text,
+    );
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Registration successful! You can now log in.'),
+        content: Text(
+          'Registration successful! You can now log in.',
+        ),
       ),
     );
+
     Navigator.of(context).pop();
   }
 

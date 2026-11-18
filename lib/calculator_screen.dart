@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/app_text_field.dart';
-import '../../widgets/operator_button.dart';
-import '../../widgets/result_card.dart';
+import 'widgets/app_text_field.dart';
+import 'widgets/operator_button.dart';
+import 'widgets/result_card.dart';
 
 class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
@@ -14,14 +14,8 @@ class CalculatorScreen extends StatefulWidget {
 class _CalculatorScreenState extends State<CalculatorScreen> {
   final num1Controller = TextEditingController();
   final num2Controller = TextEditingController();
-  String result = '0';
+  String result = '0.0';
   String? errorText;
-
-  String format(double value) {
-    return value == value.truncateToDouble()
-        ? value.toInt().toString()
-        : value.toString();
-  }
 
   void calculate(String operator) {
     final a = double.tryParse(num1Controller.text.trim());
@@ -30,7 +24,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     if (a == null || b == null) {
       setState(() {
         errorText = 'Enter valid numbers in both fields.';
-        result = '0';
+        result = '0.0';
       });
       return;
     }
@@ -38,7 +32,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     if (operator == '/' && b == 0) {
       setState(() {
         errorText = 'Cannot divide by zero.';
-        result = '0';
+        result = '0.0';
       });
       return;
     }
@@ -60,7 +54,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
     setState(() {
       errorText = null;
-      result = format(answer);
+      result = answer.toString();
     });
   }
 
@@ -69,7 +63,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     num2Controller.clear();
     setState(() {
       errorText = null;
-      result = '0';
+      result = '0.0';
     });
   }
 
