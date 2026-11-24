@@ -13,21 +13,47 @@ class _StudentCrudPageState extends State<StudentCrudPage> {
   final formKey = GlobalKey<FormState>();
   final nameController = TextEditingController();
   final courseController = TextEditingController();
-  late final CollectionReference<Map<String, dynamic>> students;
-  late final Stream<QuerySnapshot<Map<String, dynamic>>> studentStream;
+  CollectionReference<Map<String, dynamic>>? students;
+  Stream<QuerySnapshot<Map<String, dynamic>>>? studentStream;
   String? editingId;
   bool saving = false;
   bool deleting = false;
+  String? authError;
 
   @override
   void initState() {
     super.initState();
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    students = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('students');
-    studentStream = students.snapshots();
+    _initAuthAndFirestore();
+  }
+
+  Future<void> _initAuthAndFirestore() async {
+    try {
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          authError =
+              'Anonymous Authentication is not enabled yet in the Firebase Console.\n\n'
+              'Please open Firebase Console -> Authentication -> Sign-in method, '
+              'enable Anonymous, and tap Retry below.';
+        });
+      }
+      return;
+    }
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null && mounted) {
+      setState(() {
+        authError = null;
+        students = FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('students');
+        studentStream = students!.snapshots();
+      });
+    }
   }
 
   void showMessage(String message) {
@@ -48,6 +74,10 @@ class _StudentCrudPageState extends State<StudentCrudPage> {
   // CREATE or UPDATE
   Future<void> saveStudent() async {
     if (saving || deleting) return;
+    if (students == null) {
+      showMessage('Database not ready. Please enable Anonymous Authentication.');
+      return;
+    }
     if (!formKey.currentState!.validate()) {
       return;
     }
@@ -65,10 +95,10 @@ class _StudentCrudPageState extends State<StudentCrudPage> {
     try {
       if (id == null) {
         // CREATE: generate a new document.
-        await students.add(data);
+        await students!.add(data);
       } else {
         // UPDATE: modify the selected document.
-        await students.doc(id).update(data);
+        await students!.doc(id).update(data);
       }
       if (!mounted) return;
       clearForm();
@@ -105,6 +135,10 @@ class _StudentCrudPageState extends State<StudentCrudPage> {
     QueryDocumentSnapshot<Map<String, dynamic>> document,
   ) async {
     if (saving || deleting) return;
+    if (students == null) {
+      showMessage('Database not ready.');
+      return;
+    }
 
     setState(() {
       deleting = true;
@@ -138,7 +172,7 @@ class _StudentCrudPageState extends State<StudentCrudPage> {
       );
 
       if (!mounted || confirmed != true) return;
-      await students.doc(document.id).delete();
+      await students!.doc(document.id).delete();
       if (!mounted) return;
       if (editingId == document.id) {
         clearForm();
@@ -248,66 +282,107 @@ class _StudentCrudPageState extends State<StudentCrudPage> {
             ),
           ),
           const SizedBox(height: 12),
-          // READ: display live Firestore documents.
-          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: studentStream,
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return const Text(
-                  'Unable to load records. '
-                  'Check your connection and database rules.',
-                );
-              }
-              if (!snapshot.hasData) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
-              final documents = snapshot.data!.docs;
-              if (documents.isEmpty) {
-                return const Text(
-                  'No student records yet.',
-                );
-              }
-              return Column(
-                children: documents.map((document) {
-                  final data = document.data();
-                  return Card(
-                    key: ValueKey(document.id),
-                    child: ListTile(
-                      title: Text(data['name'] as String),
-                      subtitle: Text(
-                        data['course'] as String,
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: 'Edit',
-                            onPressed:
-                                busy ? null : () => editStudent(document),
-                            icon: const Icon(
-                              Icons.edit,
-                              color: Colors.blue,
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: 'Delete',
-                            onPressed:
-                                busy ? null : () => deleteStudent(document),
-                            icon: const Icon(
-                              Icons.delete,
-                              color: Colors.red,
-                            ),
-                          ),
-                        ],
-                      ),
+          // READ: display live Firestore documents or auth guidance
+          if (authError != null)
+            Card(
+              color: Colors.amber.shade50,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.amber.shade400),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.amber, size: 40),
+                    const SizedBox(height: 8),
+                    Text(
+                      authError!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.brown.shade800, fontSize: 14),
                     ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          authError = null;
+                        });
+                        _initAuthAndFirestore();
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry Connection'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (studentStream == null)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: studentStream,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Text(
+                    'Unable to load records. '
+                    'Check your connection and database rules.',
                   );
-                }).toList(),
-              );
-            },
-          ),
+                }
+                if (!snapshot.hasData) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+                final documents = snapshot.data!.docs;
+                if (documents.isEmpty) {
+                  return const Text(
+                    'No student records yet.',
+                  );
+                }
+                return Column(
+                  children: documents.map((document) {
+                    final data = document.data();
+                    return Card(
+                      key: ValueKey(document.id),
+                      child: ListTile(
+                        title: Text(data['name'] as String),
+                        subtitle: Text(
+                          data['course'] as String,
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Edit',
+                              onPressed:
+                                  busy ? null : () => editStudent(document),
+                              icon: const Icon(
+                                Icons.edit,
+                                color: Colors.blue,
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Delete',
+                              onPressed:
+                                  busy ? null : () => deleteStudent(document),
+                              icon: const Icon(
+                                Icons.delete,
+                                color: Colors.red,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
         ],
       ),
     );
