@@ -1,1 +1,17 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"peguit-student-app-cce106","configurations":{"web":"1:867098798034:web:84e9d5ea3bc9b174b60a0b"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "peguit-student-app-cce106",
+          "configurations": {
+            "web": "1:867098798034:web:84e9d5ea3bc9b174b60a0b"
+          }
+        }
+      }
+    }
+  }
+}
